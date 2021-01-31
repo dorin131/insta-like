@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Instagram like automation
+
+Resources:
+  MyLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - events.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: logs-access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                  - 'logs:CreateLogStream'
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: s3-access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                Resource: 'arn:aws:s3:::dorin-lambdas/*'
+
+  MyLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: dorin-lambdas
+        S3Key: function.zip
+      Description: Instagram liker
+      Environment:
+        Variables:
+          ig_user: "{{resolve:secretsmanager:IG:SecretString:ig_user}}"
+          ig_pass: "{{resolve:secretsmanager:IG:SecretString:ig_pass}}"
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 1600
+      Timeout: 100
+      Role: !GetAtt MyLambdaRole.Arn
+
+  MyScheduledEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Run at regular intervals
+      ScheduleExpression: "rate(30 minutes)"
+      State: ENABLED
+      RoleArn: !GetAtt MyLambdaRole.Arn
+      Targets:
+        -
+          Id: my-lambda-target
+          Arn: !GetAtt MyLambda.Arn
+
+  MyLambdaScheduledEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      FunctionName: !Ref MyLambda
+      SourceArn: !GetAtt MyScheduledEvent.Arn
