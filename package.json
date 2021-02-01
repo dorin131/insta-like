@@ -2,6 +2,7 @@
   "name": "insta-like",
   "version": "1.0.0",
   "description": "Instagram like automation",
+  "repository": "https://github.com/dorin131/insta-like",
   "main": "index.js",
   "scripts": {
     "test": "node -e \"require('./index').handler({},{},()=>{})\""
@@ -9,6 +10,8 @@
   "author": "Dorin Fodor",
   "license": "ISC",
   "dependencies": {
+    "adm-zip": "^0.5.2",
+    "aws-sdk": "^2.834.0",
     "chrome-aws-lambda": "^5.5.0",
     "puppeteer-core": "^5.5.0"
   },
